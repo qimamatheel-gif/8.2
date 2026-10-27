@@ -1,4 +1,0 @@
-[pre_model_sync]
-# No migration patches are required for the initial release.
-
-[post_model_sync]
