@@ -1,0 +1,51 @@
+"""Pure input checks; no framework dependency, also used by unit tests."""
+import hashlib
+import json
+import math
+import uuid
+
+
+def positive(value):
+    number = float(value)
+    if not math.isfinite(number) or number <= 0:
+        raise ValueError("الكمية والمبلغ يجب أن يكونا أكبر من صفر")
+    return number
+
+
+def request_identity(user, request_id, payload):
+    canonical = str(uuid.UUID(str(request_id)))
+    key = hashlib.sha256(f"{user}:{canonical}".encode()).hexdigest()
+    fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True,
+        separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+    return key, fingerprint
+
+
+def clean_lines(rows):
+    if not isinstance(rows, list) or not 1 <= len(rows) <= 200:
+        raise ValueError("أضف من صنف واحد إلى 200 صنف")
+    result = []
+    for row in rows:
+        code, uom = str(row.get("item_code") or "").strip(), str(row.get("uom") or "").strip()
+        if not code or not uom:
+            raise ValueError("الصنف ووحدة البيع مطلوبان")
+        clean = {"item_code": code, "uom": uom, "qty": positive(row.get("qty"))}
+        if row.get("discount_percentage") is not None:
+            clean["discount_percentage"] = discount_percentage(row["discount_percentage"])
+        result.append(clean)
+    return result
+
+
+def return_quantity(qty, selected_factor, original_factor, maximum):
+    value = positive(qty) * positive(selected_factor) / positive(original_factor)
+    if not math.isfinite(value) or value > positive(maximum) + 1e-9:
+        raise ValueError("كمية المرتجع أكبر من المتبقي للإرجاع")
+    return min(value, float(maximum))
+
+
+def discount_percentage(value):
+    if isinstance(value, bool):
+        raise ValueError("الخصم يجب أن يكون نسبة من 0 إلى 100")
+    number = float(value)
+    if not math.isfinite(number) or not 0 <= number <= 100:
+        raise ValueError("الخصم يجب أن يكون نسبة من 0 إلى 100")
+    return number
