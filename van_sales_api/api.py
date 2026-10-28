@@ -91,6 +91,11 @@ def catalog(kind, company=None, start=0, price_list=None):
     if kind == "prices":
         from van_sales_api.customer_pricing import permitted_price_lists
         allowed_lists = permitted_price_lists()
+        # Android 0.8.2 serializes an absent GET value as the literal "null".
+        # Treat that transport sentinel as omitted; keep real allowed lists
+        # named "null" and continue rejecting every other unauthorized name.
+        if price_list == "null" and price_list not in allowed_lists:
+            price_list = None
         if price_list and price_list not in allowed_lists:
             frappe.throw(_("قائمة الأسعار ليست مرتبطة بعملائك"), frappe.PermissionError)
         if price_list:
