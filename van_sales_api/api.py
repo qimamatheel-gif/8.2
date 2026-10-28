@@ -68,7 +68,6 @@ def bootstrap():
     readiness = schema_readiness()
     if not readiness["ready"]:
         # A valid login must remain usable for diagnosis; never pretend the site is configured.
-        from van_sales_api import __version__
         return {"user": frappe.session.user, "api_version": API_VERSION,
             "app_version": __version__, "server_status": readiness,
             "csrf_token": get_csrf_token(), "configured": False,
